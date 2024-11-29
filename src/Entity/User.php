@@ -37,7 +37,7 @@ class User implements UserInterface
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Product", mappedBy="user", cascade={"persist", "remove"})
      */
-    private $products;
+    private $products = [];
 
     // Otros métodos...
 
@@ -79,28 +79,24 @@ class User implements UserInterface
         return $this;
     }
 
-    // Métodos requeridos por UserInterface
     public function getRoles(): array
     {
-        // Retorna los roles del usuario (puedes personalizar esto)
         return ['ROLE_USER'];
     }
 
     public function getSalt(): ?string
     {
-        // Si usas bcrypt o argon2, no necesitas un "salt".
         return null;
     }
 
     public function getUserIdentifier(): string
     {
-        // Devuelve el identificador único del usuario (generalmente el email o username)
         return $this->email;
     }
 
     public function eraseCredentials()
     {
-        // Limpia datos sensibles, si es necesario (por ejemplo, campos temporales)
+        
     }
 
     public function addProduct(Product $product): self
@@ -116,7 +112,7 @@ class User implements UserInterface
     public function removeProduct(Product $product): self
     {
         if ($this->products->removeElement($product)) {
-            // Set the owning side to null (unless already changed)
+            
             if ($product->getUser() === $this) {
                 $product->setUser(null);
             }

@@ -38,33 +38,7 @@ class UserController extends AbstractController
 
         return new JsonResponse($data, JsonResponse::HTTP_OK);
     }
-
-
-    /*
-      $contentType = $request->headers->get('Content-Type');
-
-      if (str_contains($contentType, 'application/json')) {
-          
-          $data = json_decode($request->getContent(), true);
-  
-          if (!$data) {
-              return new JsonResponse(['error' => 'Invalid JSON or empty request body'], JsonResponse::HTTP_BAD_REQUEST);
-          }
-      } else {
-          $data = $request->request->all();
-      }
-
-      $user = new User();
-      $form = $this->createForm(UserType::class, $user);
-
-      $form->submit($data);
-
-      if( $form->isSubmitted() && $form->isValid() ) {
-          $userRepository->add($user, true);
-          return new JsonResponse(['success'=> true], JsonResponse::HTTP_OK);
-      }
-      return new JsonResponse(['error'=> (string)$form->getErrors(true, false)], JsonResponse::HTTP_BAD_REQUEST);
-      */
+    
     /**
      * @Route("/", name="app_user_new", methods={"POST"})
      */
