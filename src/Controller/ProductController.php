@@ -6,6 +6,7 @@ use App\Entity\Product;
 use App\Form\ProductType;
 use App\Repository\ProductRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,7 +30,7 @@ class ProductController extends AbstractController
                 'name' => $product->getName(),
                 'price' => $product->getPrice(),
                 'description' => $product->getDescription(),
-                'user' => $product->getUser(),
+                'user' => $product->getUser()->getUsername(),
             ];
         }, $products);
 
@@ -68,6 +69,18 @@ class ProductController extends AbstractController
         $form->submit($data);
 
         if ($form->isSubmitted() && $form->isValid()) {
+
+            /** @var UploadedFile $File */
+            $File = $form->get('file')->getData();
+            if($File){
+                $filename = uniqid() . '.' . $File->getExtension();
+
+                $File->move(
+                    $this->getParameter('uploads'), $filename
+                );
+
+                $product->setImage($filename);
+            }
 
             $productRepository->add($product, true);
 
