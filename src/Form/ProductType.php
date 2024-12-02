@@ -10,6 +10,7 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Validator\Constraints\File;
 
 class ProductType extends AbstractType
 {
@@ -29,9 +30,18 @@ class ProductType extends AbstractType
                 'label' => 'Product Image (PNG, JPG)',
                 'mapped' => false,
                 'required' => false,
-                'attr' => ['accept' => 'image/'],
+                'constraints' => [
+                    new File([
+                        'mimeTypes' => [
+                            'image/png',
+                            'image/jpg',
+                            'image/jpeg'
+                        ]
+                    ])
+                ]
+
             ])
-            ;
+        ;
         ;
     }
 

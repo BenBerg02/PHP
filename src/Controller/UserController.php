@@ -115,7 +115,6 @@ class UserController extends AbstractController
             }
         } else if (strpos($contentType, 'application/x-www-form-urlencoded') !== false) {
             $data = $request->request->all();
-            print_r(json_encode($request->getContent(), true));
         } else if (strpos($contentType, 'multipart/form-data') !== false) {
 
             $rawData = $request->getContent();

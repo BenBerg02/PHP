@@ -5,13 +5,13 @@ namespace App\Controller;
 use App\Entity\Product;
 use App\Form\ProductType;
 use App\Repository\ProductRepository;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * @Route("/product")
@@ -31,6 +31,7 @@ class ProductController extends AbstractController
                 'price' => $product->getPrice(),
                 'description' => $product->getDescription(),
                 'user' => $product->getUser()->getUsername(),
+                'image' => $product->getImage(),
             ];
         }, $products);
 
@@ -44,20 +45,21 @@ class ProductController extends AbstractController
 
 
     /**
-     * @Route("/", name="app_product_create", methods={"POST"})
+     * @Route("/create", name="app_product_create", methods={"POST"})
      */
     public function create(Request $request, ProductRepository $productRepository)
     {
         $contentType = $request->headers->get('Content-Type');
 
+        // Si el contenido es JSON
         if (str_contains($contentType, 'application/json')) {
-
             $data = json_decode($request->getContent(), true);
 
             if (!$data) {
                 return new JsonResponse(['error' => 'Invalid JSON or empty request body'], JsonResponse::HTTP_BAD_REQUEST);
             }
         } else {
+            // Si es un formulario, toma los datos de la solicitud
             $data = $request->request->all();
         }
 
@@ -65,22 +67,26 @@ class ProductController extends AbstractController
 
         $form = $this->createForm(ProductType::class, $product);
 
-
+        //$form->handleRequest($request)->submit($data);
         $form->submit($data);
 
         if ($form->isSubmitted() && $form->isValid()) {
 
             /** @var UploadedFile $File */
-            $File = $form->get('file')->getData();
+            $File = $request->files->get('file');
             if ($File) {
-                $filename = uniqid() . '.' . $File->getExtension();
+                $filename = uniqid() . '.' . $File->getClientOriginalExtension();
 
-                $File->move(
-                    $this->getParameter('uploads'),
-                    $filename
-                );
+                try {
+                    $File->move(
+                        $this->getParameter('uploads'),  
+                        $filename  
+                    );
 
-                $product->setImage($filename);
+                    $product->setImage($filename);
+                } catch (Exception $e) {
+                    return new JsonResponse(['error' => 'Failed to upload image'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+                }
             }
 
             $productRepository->add($product, true);
@@ -88,7 +94,7 @@ class ProductController extends AbstractController
             return new JsonResponse(['id' => $product->getId()], JsonResponse::HTTP_CREATED);
         }
 
-        return new JsonResponse(['error' => (string) $form->getErrors(true, false)], JsonResponse::HTTP_BAD_REQUEST);
+        return new JsonResponse(['error' => (string) $form->getErrors(true, false), 'message' => 'yes yes yes'], JsonResponse::HTTP_BAD_REQUEST);
     }
 
 
