@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use PHPUnit\Framework\Constraint\IsType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,7 +39,7 @@ class UserController extends AbstractController
 
         return new JsonResponse($data, JsonResponse::HTTP_OK);
     }
-    
+
     /**
      * @Route("/", name="app_user_new", methods={"POST"})
      */
@@ -81,42 +82,80 @@ class UserController extends AbstractController
     /**
      * @Route("/{id}", name="app_user_show", methods={"GET"})
      */
-    public function show(User $user): Response
+    public function show(int $id, UserRepository $userRepository): JsonResponse
     {
-        return $this->render('user/show.html.twig', [
-            'user' => $user,
-        ]);
+        $user = $userRepository->findOneBy(['id' => $id]);
+        if (!$user) {
+            return new JsonResponse(['error' => ''], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        return new JsonResponse(
+            [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'username' => $user->getUsername()
+            ]
+            ,
+            JsonResponse::HTTP_OK
+        );
+
     }
 
     /**
-     * @Route("/{id}/edit", name="app_user_edit", methods={"GET", "POST"})
+     * @Route("/{id}", name="app_user_edit", methods={"PUT"})
      */
-    public function edit(Request $request, User $user, UserRepository $userRepository): Response
+    public function edit(Request $request, int $id, UserRepository $userRepository): JsonResponse
     {
-        $form = $this->createForm(UserType::class, $user);
-        $form->handleRequest($request);
+        $contentType = $request->headers->get('Content-Type');
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $userRepository->add($user, true);
+        if (str_contains($contentType, 'application/json')) {
+            $data = json_decode($request->getContent(), true);
+            if (!$data) {
+                return new JsonResponse(['error' => 'Invalid JSON or empty request body'], JsonResponse::HTTP_BAD_REQUEST);
 
-            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+            }
+        } else if (strpos($contentType, 'application/x-www-form-urlencoded') !== false) {
+            $data = $request->request->all();
+            print_r(json_encode($request->getContent(), true));
+        } else if (strpos($contentType, 'multipart/form-data') !== false) {
+            
+            $rawData = $request->getContent();
+
+            preg_match_all('/Content-Disposition: form-data; name="([^"]+)"\r\n\r\n([^--]+)/', $rawData, $matches);
+
+            $form_data = array();
+            foreach ($matches[1] as $index => $fieldname) {
+
+                if (strlen($matches[2][$index]) <= 2){
+                    return new JsonResponse(['error'=> 'a field is emply'], JsonResponse::HTTP_BAD_REQUEST);
+                }
+                $data[$fieldname] = trim($matches[2][$index]);
+            }
+        } else {
+            return new JsonResponse(['error' => 'Invalid JSON 2'], JsonResponse::HTTP_BAD_REQUEST);
+
+        }
+        $user = $userRepository->find($id);
+
+        if (!$user) {
+            return new JsonResponse(['error' => ''], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        return $this->renderForm('user/edit.html.twig', [
-            'user' => $user,
-            'form' => $form,
-        ]);
-    }
-
-    /**
-     * @Route("/{id}", name="app_user_delete", methods={"POST"})
-     */
-    public function delete(Request $request, User $user, UserRepository $userRepository): Response
-    {
-        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
-            $userRepository->remove($user, true);
+        if (isset($data['email'])) {
+            $user->setEmail($data['email']);
+        }
+        if (isset($data['username'])) {
+            $user->setUsername($data['username']);
         }
 
-        return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        $userRepository->add($user, true);
+
+        return new JsonResponse([
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'username' => $user->getUsername()
+        ], JsonResponse::HTTP_OK);
+
     }
+
 }
