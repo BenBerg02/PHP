@@ -72,11 +72,12 @@ class ProductController extends AbstractController
 
             /** @var UploadedFile $File */
             $File = $form->get('file')->getData();
-            if($File){
+            if ($File) {
                 $filename = uniqid() . '.' . $File->getExtension();
 
                 $File->move(
-                    $this->getParameter('uploads'), $filename
+                    $this->getParameter('uploads'),
+                    $filename
                 );
 
                 $product->setImage($filename);
@@ -125,6 +126,20 @@ class ProductController extends AbstractController
 
             if (!$data) {
                 return new JsonResponse(['error' => 'Invalid JSON or empty request body'], JsonResponse::HTTP_BAD_REQUEST);
+            }
+        } else if (strpos($contentType, 'multipart/form-data') !== false) {
+
+            $rawData = $request->getContent();
+
+            preg_match_all('/Content-Disposition: form-data; name="([^"]+)"\r\n\r\n([^--]+)/', $rawData, $matches);
+
+            $form_data = array();
+            foreach ($matches[1] as $index => $fieldname) {
+
+                if (strlen($matches[2][$index]) <= 2) {
+                    return new JsonResponse(['error' => 'a field is emply'], JsonResponse::HTTP_BAD_REQUEST);
+                }
+                $data[$fieldname] = trim($matches[2][$index]);
             }
         } else {
             $data = $request->request->all();
