@@ -118,7 +118,7 @@ class UserController extends AbstractController
             $data = $request->request->all();
             print_r(json_encode($request->getContent(), true));
         } else if (strpos($contentType, 'multipart/form-data') !== false) {
-            
+
             $rawData = $request->getContent();
 
             preg_match_all('/Content-Disposition: form-data; name="([^"]+)"\r\n\r\n([^--]+)/', $rawData, $matches);
@@ -126,8 +126,8 @@ class UserController extends AbstractController
             $form_data = array();
             foreach ($matches[1] as $index => $fieldname) {
 
-                if (strlen($matches[2][$index]) <= 2){
-                    return new JsonResponse(['error'=> 'a field is emply'], JsonResponse::HTTP_BAD_REQUEST);
+                if (strlen($matches[2][$index]) <= 2) {
+                    return new JsonResponse(['error' => 'a field is emply'], JsonResponse::HTTP_BAD_REQUEST);
                 }
                 $data[$fieldname] = trim($matches[2][$index]);
             }
